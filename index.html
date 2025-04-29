@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>弁当在庫数計算ツール</title>
+    <title>在庫計算ツール</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -78,6 +78,14 @@
             font-size: 12px;
             color: #666;
         }
+        .debug-info {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #999;
+            border-top: 1px dashed #ddd;
+            padding-top: 10px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -98,6 +106,8 @@
         </div>
 
         <button onclick="calculateStock()">再計算</button>
+
+        <div class="debug-info" id="debugInfo"></div>
     </div>
 
     <div class="footer">
@@ -111,7 +121,8 @@
         // 日本時間の現在の日付を取得する関数
         function getJapanDate() {
             const now = new Date();
-            const jpTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+            // タイムゾーンオフセットを考慮して日本時間に変換
+            const jpTime = new Date(now.getTime() + (9 * 60 - now.getTimezoneOffset()) * 60000);
             return jpTime;
         }
 
@@ -121,6 +132,25 @@
             const mm = String(date.getMonth() + 1).padStart(2, '0');
             const dd = String(date.getDate()).padStart(2, '0');
             return `${yyyy}-${mm}-${dd}`;
+        }
+
+        // 日付表示用にフォーマットする関数
+        function formatDateForDisplay(date) {
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            return `${yyyy}/${mm}/${dd}`;
+        }
+
+        // 曜日を判定する関数 (0:日曜日, 1:月曜日, 2:火曜日, 3:水曜日, 4:木曜日, 5:金曜日, 6:土曜日)
+        function getDayOfWeek(date) {
+            return date.getDay();
+        }
+
+        // 曜日を日本語の文字列で取得する関数
+        function getDayOfWeekJP(date) {
+            const days = ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'];
+            return days[getDayOfWeek(date)];
         }
 
         // ローカルストレージからデータを読み込む
@@ -175,8 +205,14 @@
                 return;
             }
 
-            // 経過日数の計算
-            const timeDiff = currentDate.getTime() - startDate.getTime();
+            // 基準日を00:00:00に設定
+            startDate.setHours(0, 0, 0, 0);
+            // 現在日も00:00:00に設定（時間を無視して日数だけを考慮）
+            const todayDate = new Date(currentDate);
+            todayDate.setHours(0, 0, 0, 0);
+
+            // 経過日数の計算（基準日も含める）
+            const timeDiff = todayDate.getTime() - startDate.getTime();
             const daysDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
 
             if (daysDiff < 0) {
@@ -184,33 +220,34 @@
                 return;
             }
 
-            // 水曜日と土曜日の数をカウント
-            let specialDays = 0;
-            let normalDays = 0;
+            // デバッグ情報の初期化
+            let debugInfo = [];
+            let currentStock = initialStock;
 
+            // 基準日から今日までの各日の在庫減少を計算
             for (let i = 0; i <= daysDiff; i++) {
                 const day = new Date(startDate);
                 day.setDate(startDate.getDate() + i);
-                const dayOfWeek = day.getDay();
+                const dayOfWeek = getDayOfWeek(day);
 
-                // 水曜日(3)と土曜日(6)をカウント
-                if (dayOfWeek === 3 || dayOfWeek === 6) {
-                    specialDays++;
-                } else {
-                    normalDays++;
-                }
+                // 水曜日(3)と土曜日(6)は-1、それ以外は-2
+                let decrease = (dayOfWeek === 3 || dayOfWeek === 6) ? 1 : 2;
+                currentStock -= decrease;
+
+                // デバッグ情報を追加
+                debugInfo.push(`${formatDateForDisplay(day)} (${getDayOfWeekJP(day)}): -${decrease}, 残り${currentStock}`);
             }
 
-            // 在庫減少量の計算
-            const specialDaysDecrease = specialDays * 1;
-            const normalDaysDecrease = normalDays * 2;
-            const totalDecrease = specialDaysDecrease + normalDaysDecrease;
-
-            // 現在の在庫数
-            const currentStock = Math.max(0, initialStock - totalDecrease);
+            // 在庫が0未満にならないように調整
+            currentStock = Math.max(0, currentStock);
 
             // 結果の表示
             document.getElementById('resultCurrentStock').textContent = currentStock;
+
+            // デバッグ情報を表示（開発時に役立つ）
+            const debugInfoElement = document.getElementById('debugInfo');
+            debugInfoElement.innerHTML = debugInfo.join('<br>');
+            // debugInfoElement.style.display = 'block'; // 必要な場合はコメントを外す
         }
 
         // ページ読み込み時にローカルストレージから復元
