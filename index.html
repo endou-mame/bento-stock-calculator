@@ -2,141 +2,268 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>在庫計算ツール</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>在庫管理ツール</title>
     <style>
+        :root {
+            --primary-color: #4CAF50;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --safe-color: #4CAF50;
+            --border-color: #e0e0e0;
+            --bg-color: #f9f9f9;
+            --card-bg: white;
+            --text-color: #333;
+            --text-secondary: #666;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
             max-width: 600px;
             margin: 0 auto;
-            padding: 20px;
-            background-color: #f9f9f9;
+            padding: 16px;
         }
-        .container {
-            background-color: white;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
+
         h1 {
-            color: #4CAF50;
+            color: var(--primary-color);
             text-align: center;
-            margin-top: 0;
-            margin-bottom: 25px;
+            margin: 16px 0 24px 0;
+            font-size: 24px;
         }
+
+        .stock-cards {
+            margin-bottom: 24px;
+        }
+
+        .stock-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 16px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-weight: bold;
+            font-size: 18px;
+            margin: 0;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 50%;
+        }
+
+        .delete-btn:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
+
         label {
             display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #333;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 14px;
         }
+
         input {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
             font-size: 16px;
         }
-        button {
-            background-color: #4CAF50;
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+
+        .results {
+            background-color: rgba(0, 0, 0, 0.02);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 16px;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .result-label {
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .result-value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .result-value.danger {
+            color: var(--danger-color);
+        }
+
+        .result-value.warning {
+            color: var(--warning-color);
+        }
+
+        .result-value.safe {
+            color: var(--safe-color);
+        }
+
+        .result-note {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .btn {
+            background-color: var(--primary-color);
             color: white;
             border: none;
-            padding: 12px 15px;
-            border-radius: 4px;
-            cursor: pointer;
+            padding: 14px;
+            border-radius: 8px;
             width: 100%;
             font-size: 16px;
-            margin-top: 10px;
-            transition: background-color 0.3s;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: block;
+            text-align: center;
         }
-        button:hover {
+
+        .btn:hover {
             background-color: #45a049;
         }
-        .result-item {
-            margin-bottom: 15px;
-            padding: 15px;
-            background-color: #f2f2f2;
-            border-radius: 4px;
-            border-left: 4px solid #4CAF50;
+
+        .btn-outline {
+            background-color: transparent;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
         }
-        .result-title {
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #333;
+
+        .btn-outline:hover {
+            background-color: rgba(76, 175, 80, 0.1);
         }
-        .result-value {
-            font-size: 24px;
-            color: #4CAF50;
-        }
-        .result-subtitle {
-            margin-top: 10px;
+
+        .btn-small {
+            padding: 8px 12px;
             font-size: 14px;
-            color: #666;
         }
-        .danger {
-            color: #e74c3c;
+
+        .add-new {
+            margin-bottom: 24px;
         }
-        .warning {
-            color: #f39c12;
-        }
-        .safe {
-            color: #4CAF50;
-        }
-        .footer {
-            margin-top: 20px;
+
+        .empty-state {
             text-align: center;
-            font-size: 12px;
-            color: #666;
+            padding: 32px 16px;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 24px;
         }
-        .debug-info {
-            margin-top: 20px;
+
+        .empty-state-icon {
+            font-size: 48px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .empty-state-text {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 16px;
             font-size: 12px;
-            color: #999;
-            border-top: 1px dashed #ddd;
-            padding-top: 10px;
-            display: none;
+            color: var(--text-secondary);
+        }
+
+        /* モバイル向け調整 */
+        @media (max-width: 480px) {
+            .container {
+                padding: 12px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+
+            .stock-card {
+                padding: 14px;
+            }
+
+            input {
+                font-size: 16px; /* iOSで自動ズームを防ぐため */
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>在庫計算ツール</h1>
-        <div class="form-group">
-            <label for="startDate">基準日:</label>
-            <input type="date" id="startDate" required>
-        </div>
-        <div class="form-group">
-            <label for="initialStock">初期在庫数:</label>
-            <input type="number" id="initialStock" min="0" required>
+        <h1>在庫管理ツール</h1>
+
+        <div id="stockCards" class="stock-cards">
+            <!-- 在庫カードがここに挿入されます -->
         </div>
 
-        <div class="result-item">
-            <div class="result-title">現在の在庫数:</div>
-            <div class="result-value" id="resultCurrentStock">-</div>
+        <div id="emptyState" class="empty-state">
+            <div class="empty-state-icon">📦</div>
+            <div class="empty-state-text">在庫データがありません</div>
+            <button class="btn" onclick="addNewStock()">在庫データを追加</button>
         </div>
 
-        <div class="result-item">
-            <div class="result-title">在庫切れ予測:</div>
-            <div class="result-value" id="resultZeroStockDate">-</div>
-            <div class="result-subtitle" id="resultDaysUntilZero"></div>
+        <div class="add-new" id="addNewBtn" style="display:none;">
+            <button class="btn btn-outline" onclick="addNewStock()">+ 新しい在庫を追加</button>
         </div>
-
-        <button onclick="calculateStock()">再計算</button>
-
-        <div class="debug-info" id="debugInfo"></div>
     </div>
 
     <div class="footer">
-        <p>© 2025 在庫計算ツール by ずんだもん</p>
+        <p>© 2025 在庫管理ツール by ずんだもん</p>
     </div>
 
     <script>
         // ローカルストレージキー
         const STORAGE_KEY = 'stockCalculatorData';
+
+        // 在庫データの配列
+        let stockItems = [];
 
         // 日本時間の現在の日付を取得する関数
         function getJapanDate() {
@@ -185,51 +312,165 @@
         function loadFromLocalStorage() {
             const savedData = localStorage.getItem(STORAGE_KEY);
             if (savedData) {
-                const data = JSON.parse(savedData);
-                document.getElementById('startDate').value = data.startDate || formatDateForInput(getJapanDate());
-                document.getElementById('initialStock').value = data.initialStock || '';
-
-                // 保存されたデータがあれば自動計算
-                if (data.startDate && data.initialStock) {
-                    calculateStock();
-                }
-            } else {
-                // 初回訪問時は今日の日付を設定
-                document.getElementById('startDate').value = formatDateForInput(getJapanDate());
+                stockItems = JSON.parse(savedData);
+                renderStockCards();
             }
+            updateEmptyState();
         }
 
         // ローカルストレージにデータを保存
-        function saveToLocalStorage(startDate, initialStock) {
-            const data = {
-                startDate: startDate,
-                initialStock: initialStock
-            };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        function saveToLocalStorage() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(stockItems));
         }
 
-        // 在庫計算関数
-        function calculateStock() {
-            // 入力値の取得
-            const startDateStr = document.getElementById('startDate').value;
-            const initialStock = parseInt(document.getElementById('initialStock').value);
+        // 在庫カードを描画する関数
+        function renderStockCards() {
+            const stockCardsContainer = document.getElementById('stockCards');
+            stockCardsContainer.innerHTML = '';
 
-            // 入力チェック
-            if (!startDateStr || isNaN(initialStock)) {
-                alert('基準日と初期在庫数を入力してください');
+            stockItems.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'stock-card';
+
+                // 在庫名がなければ番号をつける
+                const stockName = item.name || `在庫 ${index + 1}`;
+
+                card.innerHTML = `
+                    <div class="card-header">
+                        <h3 class="card-title">${stockName}</h3>
+                        <button class="delete-btn" onclick="deleteStock(${index})">×</button>
+                    </div>
+                    <div class="form-group">
+                        <label for="name-${index}">在庫名:</label>
+                        <input type="text" id="name-${index}" value="${item.name || ''}" oninput="updateStockName(${index}, this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label for="startDate-${index}">基準日:</label>
+                        <input type="date" id="startDate-${index}" value="${item.startDate}" oninput="updateStockData(${index})">
+                    </div>
+                    <div class="form-group">
+                        <label for="initialStock-${index}">初期在庫数:</label>
+                        <input type="number" id="initialStock-${index}" min="0" value="${item.initialStock}" oninput="updateStockData(${index})">
+                    </div>
+                    <div class="results">
+                        <div class="result-row">
+                            <div class="result-label">現在の在庫数:</div>
+                            <div class="result-value">${item.currentStock !== undefined ? item.currentStock : '-'}</div>
+                        </div>
+                        <div class="result-row">
+                            <div class="result-label">在庫切れ予測:</div>
+                            <div class="result-value ${getColorClass(item.daysUntilZero)}">${item.zeroStockDate || '-'}</div>
+                        </div>
+                        ${item.daysUntilZero ? `<div class="result-note">${item.daysUntilZeroText || ''}</div>` : ''}
+                    </div>
+                `;
+
+                stockCardsContainer.appendChild(card);
+            });
+
+            updateEmptyState();
+        }
+
+        // 在庫切れ予測に基づいて色分けするクラスを取得
+        function getColorClass(days) {
+            if (days === undefined) return '';
+            if (days <= 0) return 'danger';
+            if (days <= 3) return 'danger';
+            if (days <= 7) return 'warning';
+            return 'safe';
+        }
+
+        // 空の状態を更新
+        function updateEmptyState() {
+            const emptyState = document.getElementById('emptyState');
+            const addNewBtn = document.getElementById('addNewBtn');
+
+            if (stockItems.length === 0) {
+                emptyState.style.display = 'block';
+                addNewBtn.style.display = 'none';
+            } else {
+                emptyState.style.display = 'none';
+                addNewBtn.style.display = stockItems.length < 3 ? 'block' : 'none';
+            }
+        }
+
+        // 新しい在庫を追加
+        function addNewStock() {
+            if (stockItems.length >= 3) {
+                alert('最大3つまでの在庫しか管理できません');
                 return;
             }
 
-            // ローカルストレージに保存
-            saveToLocalStorage(startDateStr, initialStock);
+            const today = getJapanDate();
+
+            stockItems.push({
+                name: '',
+                startDate: formatDateForInput(today),
+                initialStock: 0,
+                currentStock: 0,
+                zeroStockDate: '',
+                daysUntilZero: 0,
+                daysUntilZeroText: ''
+            });
+
+            saveToLocalStorage();
+            renderStockCards();
+
+            // 最新の在庫カードにスクロール
+            setTimeout(() => {
+                window.scrollTo({
+                    top: document.body.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }, 100);
+        }
+
+        // 在庫データを更新
+        function updateStockData(index) {
+            const startDateInput = document.getElementById(`startDate-${index}`);
+            const initialStockInput = document.getElementById(`initialStock-${index}`);
+
+            const startDateStr = startDateInput.value;
+            const initialStock = parseInt(initialStockInput.value) || 0;
+
+            if (!startDateStr) return;
+
+            stockItems[index].startDate = startDateStr;
+            stockItems[index].initialStock = initialStock;
+
+            // 在庫計算を実行
+            calculateStockItem(index);
+
+            // 保存して再描画
+            saveToLocalStorage();
+            renderStockCards();
+        }
+
+        // 在庫名を更新
+        function updateStockName(index, name) {
+            stockItems[index].name = name;
+            saveToLocalStorage();
+        }
+
+        // 在庫を削除
+        function deleteStock(index) {
+            if (confirm('この在庫データを削除しますか？')) {
+                stockItems.splice(index, 1);
+                saveToLocalStorage();
+                renderStockCards();
+            }
+        }
+
+        // 在庫計算関数（特定のインデックスの在庫アイテム用）
+        function calculateStockItem(index) {
+            const item = stockItems[index];
 
             // 日付の変換
-            const startDate = new Date(startDateStr);
+            const startDate = new Date(item.startDate);
             const currentDate = getJapanDate();
 
             // 日付が有効かチェック
             if (isNaN(startDate.getTime())) {
-                alert('有効な日付を入力してください');
                 return;
             }
 
@@ -239,31 +480,21 @@
             const todayDate = new Date(currentDate);
             todayDate.setHours(0, 0, 0, 0);
 
-            // 経過日数の計算（基準日も含める）
+            // 経過日数の計算（基準日を含めないように調整）
             const timeDiff = todayDate.getTime() - startDate.getTime();
             const daysDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
 
-            if (daysDiff < 0) {
-                alert('基準日は今日より前の日付にしてください');
-                return;
-            }
-
-            // デバッグ情報の初期化
-            let debugInfo = [];
-            let currentStock = initialStock;
+            let currentStock = item.initialStock;
 
             // 基準日から今日までの各日の在庫減少を計算
-            for (let i = 0; i <= daysDiff; i++) {
+            for (let i = 0; i < daysDiff; i++) { // 基準日を含めないように < を使用
                 const day = new Date(startDate);
-                day.setDate(startDate.getDate() + i);
+                day.setDate(startDate.getDate() + i + 1); // +1 で基準日の翌日から計算
                 const dayOfWeek = getDayOfWeek(day);
 
                 // 水曜日(3)と土曜日(6)は-1、それ以外は-2
                 let decrease = (dayOfWeek === 3 || dayOfWeek === 6) ? 1 : 2;
                 currentStock -= decrease;
-
-                // デバッグ情報を追加
-                debugInfo.push(`${formatDateForDisplay(day)} (${getDayOfWeekJP(day)}): -${decrease}, 残り${Math.max(0, currentStock)}`);
 
                 // 在庫が0以下になったらループを抜ける
                 if (currentStock <= 0) {
@@ -272,25 +503,23 @@
                 }
             }
 
-            // 結果の表示
-            document.getElementById('resultCurrentStock').textContent = currentStock;
+            // 結果を更新
+            item.currentStock = currentStock;
 
-            // 在庫切れ予測日の計算
-            calculateZeroStockDate(startDate, initialStock, currentStock);
-
-            // デバッグ情報を表示（開発時に役立つ）
-            const debugInfoElement = document.getElementById('debugInfo');
-            debugInfoElement.innerHTML = debugInfo.join('<br>');
-            // debugInfoElement.style.display = 'block'; // 必要な場合はコメントを外す
+            // 在庫切れ予測日を計算
+            calculateZeroStockDate(index);
         }
 
         // 在庫切れ予測日を計算する関数
-        function calculateZeroStockDate(startDate, initialStock, currentStock) {
+        function calculateZeroStockDate(index) {
+            const item = stockItems[index];
+            const currentStock = item.currentStock;
+
             // 既に在庫切れの場合
             if (currentStock <= 0) {
-                document.getElementById('resultZeroStockDate').textContent = "在庫切れ";
-                document.getElementById('resultZeroStockDate').className = "result-value danger";
-                document.getElementById('resultDaysUntilZero').textContent = "";
+                item.zeroStockDate = "在庫切れ";
+                item.daysUntilZero = 0;
+                item.daysUntilZeroText = "";
                 return;
             }
 
@@ -313,20 +542,10 @@
                 remainingStock -= decrease;
             }
 
-            // 結果の表示
-            document.getElementById('resultZeroStockDate').textContent = formatDateForDisplay(predictDate);
-
-            // 日数に応じた色分け
-            if (daysUntilZero <= 3) {
-                document.getElementById('resultZeroStockDate').className = "result-value danger";
-            } else if (daysUntilZero <= 7) {
-                document.getElementById('resultZeroStockDate').className = "result-value warning";
-            } else {
-                document.getElementById('resultZeroStockDate').className = "result-value safe";
-            }
-
-            // 残り日数の表示
-            document.getElementById('resultDaysUntilZero').textContent = `（${formatDaysInJapanese(daysUntilZero)}）`;
+            // 結果を更新
+            item.zeroStockDate = formatDateForDisplay(predictDate);
+            item.daysUntilZero = daysUntilZero;
+            item.daysUntilZeroText = `（${formatDaysInJapanese(daysUntilZero)}）`;
         }
 
         // ページ読み込み時にローカルストレージから復元
