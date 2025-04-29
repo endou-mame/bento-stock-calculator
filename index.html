@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>弁当在庫数計算ツール</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .container {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #4CAF50;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 25px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result-item {
+            margin-bottom: 15px;
+            padding: 15px;
+            background-color: #f2f2f2;
+            border-radius: 4px;
+            border-left: 4px solid #4CAF50;
+        }
+        .result-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        .result-value {
+            font-size: 24px;
+            color: #4CAF50;
+        }
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>在庫計算ツール</h1>
+        <div class="form-group">
+            <label for="startDate">基準日:</label>
+            <input type="date" id="startDate" required>
+        </div>
+        <div class="form-group">
+            <label for="initialStock">初期在庫数:</label>
+            <input type="number" id="initialStock" min="0" required>
+        </div>
+
+        <div class="result-item">
+            <div class="result-title">現在の在庫数:</div>
+            <div class="result-value" id="resultCurrentStock">-</div>
+        </div>
+
+        <button onclick="calculateStock()">再計算</button>
+    </div>
+
+    <div class="footer">
+        <p>© 2025 在庫計算ツール by ずんだもん</p>
+    </div>
+
+    <script>
+        // ローカルストレージキー
+        const STORAGE_KEY = 'stockCalculatorData';
+
+        // 日本時間の現在の日付を取得する関数
+        function getJapanDate() {
+            const now = new Date();
+            const jpTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+            return jpTime;
+        }
+
+        // 日付をYYYY-MM-DD形式に整形する関数
+        function formatDateForInput(date) {
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        // ローカルストレージからデータを読み込む
+        function loadFromLocalStorage() {
+            const savedData = localStorage.getItem(STORAGE_KEY);
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                document.getElementById('startDate').value = data.startDate || formatDateForInput(getJapanDate());
+                document.getElementById('initialStock').value = data.initialStock || '';
+
+                // 保存されたデータがあれば自動計算
+                if (data.startDate && data.initialStock) {
+                    calculateStock();
+                }
+            } else {
+                // 初回訪問時は今日の日付を設定
+                document.getElementById('startDate').value = formatDateForInput(getJapanDate());
+            }
+        }
+
+        // ローカルストレージにデータを保存
+        function saveToLocalStorage(startDate, initialStock) {
+            const data = {
+                startDate: startDate,
+                initialStock: initialStock
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        // 在庫計算関数
+        function calculateStock() {
+            // 入力値の取得
+            const startDateStr = document.getElementById('startDate').value;
+            const initialStock = parseInt(document.getElementById('initialStock').value);
+
+            // 入力チェック
+            if (!startDateStr || isNaN(initialStock)) {
+                alert('基準日と初期在庫数を入力してください');
+                return;
+            }
+
+            // ローカルストレージに保存
+            saveToLocalStorage(startDateStr, initialStock);
+
+            // 日付の変換
+            const startDate = new Date(startDateStr);
+            const currentDate = getJapanDate();
+
+            // 日付が有効かチェック
+            if (isNaN(startDate.getTime())) {
+                alert('有効な日付を入力してください');
+                return;
+            }
+
+            // 経過日数の計算
+            const timeDiff = currentDate.getTime() - startDate.getTime();
+            const daysDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
+
+            if (daysDiff < 0) {
+                alert('基準日は今日より前の日付にしてください');
+                return;
+            }
+
+            // 水曜日と土曜日の数をカウント
+            let specialDays = 0;
+            let normalDays = 0;
+
+            for (let i = 0; i <= daysDiff; i++) {
+                const day = new Date(startDate);
+                day.setDate(startDate.getDate() + i);
+                const dayOfWeek = day.getDay();
+
+                // 水曜日(3)と土曜日(6)をカウント
+                if (dayOfWeek === 3 || dayOfWeek === 6) {
+                    specialDays++;
+                } else {
+                    normalDays++;
+                }
+            }
+
+            // 在庫減少量の計算
+            const specialDaysDecrease = specialDays * 1;
+            const normalDaysDecrease = normalDays * 2;
+            const totalDecrease = specialDaysDecrease + normalDaysDecrease;
+
+            // 現在の在庫数
+            const currentStock = Math.max(0, initialStock - totalDecrease);
+
+            // 結果の表示
+            document.getElementById('resultCurrentStock').textContent = currentStock;
+        }
+
+        // ページ読み込み時にローカルストレージから復元
+        document.addEventListener('DOMContentLoaded', loadFromLocalStorage);
+    </script>
+</body>
+</html>
