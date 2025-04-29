@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>在庫管理ツール</title>
+    <title>弁当 在庫管理ツール</title>
     <style>
         :root {
             --primary-color: #4CAF50;
+            --primary-light: #E8F5E9;
             --danger-color: #e74c3c;
             --warning-color: #f39c12;
             --safe-color: #4CAF50;
@@ -51,35 +52,41 @@
         .stock-card {
             background-color: var(--card-bg);
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             margin-bottom: 16px;
             position: relative;
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
+            overflow: hidden;
         }
 
         .delete-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
             background: none;
             border: none;
             color: var(--text-secondary);
-            font-size: 20px;
+            font-size: 18px;
             cursor: pointer;
-            padding: 4px 8px;
+            padding: 5px 8px;
             border-radius: 50%;
+            z-index: 10;
         }
 
         .delete-btn:hover {
             background-color: rgba(0, 0, 0, 0.05);
         }
 
+        .card-content {
+            padding: 16px;
+        }
+
         .form-group {
             margin-bottom: 16px;
+            position: relative;
+        }
+
+        .form-group:last-of-type {
+            margin-bottom: 0;
         }
 
         label {
@@ -87,6 +94,7 @@
             margin-bottom: 6px;
             font-weight: 500;
             font-size: 14px;
+            color: var(--text-secondary);
         }
 
         input {
@@ -95,35 +103,43 @@
             border: 1px solid var(--border-color);
             border-radius: 8px;
             font-size: 16px;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
 
         input:focus {
             outline: none;
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+        }
+
+        input[type="date"] {
+            appearance: none;
+            -webkit-appearance: none;
+            background-color: white;
         }
 
         .results {
-            background-color: rgba(0, 0, 0, 0.02);
-            border-radius: 8px;
-            padding: 12px;
             margin-top: 16px;
+            background-color: var(--primary-light);
+            border-radius: 0 0 12px 12px;
+            padding: 16px;
         }
 
         .result-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 8px;
+            align-items: center;
+            margin-bottom: 10px;
         }
 
         .result-label {
             font-weight: 500;
-            color: var(--text-secondary);
             font-size: 14px;
+            color: var(--text-secondary);
         }
 
         .result-value {
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 600;
         }
 
@@ -140,8 +156,10 @@
         }
 
         .result-note {
-            font-size: 12px;
+            font-size: 13px;
             color: var(--text-secondary);
+            text-align: right;
+            margin-top: -8px;
         }
 
         .btn {
@@ -154,13 +172,17 @@
             font-size: 16px;
             font-weight: 500;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s, transform 0.1s;
             display: block;
             text-align: center;
         }
 
         .btn:hover {
             background-color: #45a049;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
         }
 
         .btn-outline {
@@ -173,11 +195,6 @@
             background-color: rgba(76, 175, 80, 0.1);
         }
 
-        .btn-small {
-            padding: 8px 12px;
-            font-size: 14px;
-        }
-
         .add-new {
             margin-bottom: 24px;
         }
@@ -187,7 +204,7 @@
             padding: 32px 16px;
             background-color: var(--card-bg);
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             margin-bottom: 24px;
         }
 
@@ -219,7 +236,7 @@
                 font-size: 22px;
             }
 
-            .stock-card {
+            .card-content {
                 padding: 14px;
             }
 
@@ -357,21 +374,21 @@
                 card.className = 'stock-card';
 
                 card.innerHTML = `
-                    <div class="card-header">
-                        <button class="delete-btn" onclick="deleteStock(${index})">×</button>
-                    </div>
-                    <div class="form-group">
-                        <label for="name-${index}">在庫名:</label>
-                        <input type="text" id="name-${index}" value="${item.name || ''}" oninput="updateStockName(${index}, this.value)">
-                    </div>
-                    <div class="form-group">
-                        <label for="startDate-${index}">基準日:</label>
-                        <input type="date" id="startDate-${index}" value="${item.startDate}" oninput="updateStockData(${index})">
-                    </div>
-                    <div class="form-group">
-                        <label for="initialStock-${index}">初期在庫数:</label>
-                        <input type="number" id="initialStock-${index}" min="0" value="${item.initialStock}"
-                            oninput="updateStockDataDelayed(${index}, this.value, 'initialStock')">
+                    <button class="delete-btn" onclick="deleteStock(${index})">×</button>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <label for="name-${index}">在庫名:</label>
+                            <input type="text" id="name-${index}" value="${item.name || ''}" placeholder="商品名を入力" oninput="updateStockName(${index}, this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label for="startDate-${index}">基準日:</label>
+                            <input type="date" id="startDate-${index}" value="${item.startDate}" oninput="updateStockData(${index})">
+                        </div>
+                        <div class="form-group">
+                            <label for="initialStock-${index}">初期在庫数:</label>
+                            <input type="number" id="initialStock-${index}" min="0" value="${item.initialStock}" placeholder="数量を入力"
+                                oninput="updateStockDataDelayed(${index}, this.value, 'initialStock')">
+                        </div>
                     </div>
                     <div class="results">
                         <div class="result-row">
