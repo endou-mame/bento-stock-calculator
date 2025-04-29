@@ -64,12 +64,6 @@
             margin-bottom: 12px;
         }
 
-        .card-title {
-            font-weight: bold;
-            font-size: 18px;
-            margin: 0;
-        }
-
         .delete-btn {
             background: none;
             border: none;
@@ -362,12 +356,8 @@
                 const card = document.createElement('div');
                 card.className = 'stock-card';
 
-                // 在庫名がなければ番号をつける
-                const stockName = item.name || `在庫 ${index + 1}`;
-
                 card.innerHTML = `
                     <div class="card-header">
-                        <h3 class="card-title">${stockName}</h3>
                         <button class="delete-btn" onclick="deleteStock(${index})">×</button>
                     </div>
                     <div class="form-group">
@@ -380,7 +370,8 @@
                     </div>
                     <div class="form-group">
                         <label for="initialStock-${index}">初期在庫数:</label>
-                        <input type="number" id="initialStock-${index}" min="0" value="${item.initialStock}" oninput="updateStockData(${index})">
+                        <input type="number" id="initialStock-${index}" min="0" value="${item.initialStock}"
+                            oninput="updateStockDataDelayed(${index}, this.value, 'initialStock')">
                     </div>
                     <div class="results">
                         <div class="result-row">
@@ -399,6 +390,63 @@
             });
 
             updateEmptyState();
+        }
+
+        // 遅延更新用のタイマーID
+        let updateTimers = {};
+
+        // 遅延更新関数（フォーカスが外れるのを防ぐため）
+        function updateStockDataDelayed(index, value, field) {
+            // 前のタイマーがあればクリア
+            if (updateTimers[`${index}-${field}`]) {
+                clearTimeout(updateTimers[`${index}-${field}`]);
+            }
+
+            // 値を即時更新
+            if (field === 'initialStock') {
+                stockItems[index].initialStock = parseInt(value) || 0;
+            }
+
+            // 遅延して計算と保存を実行
+            updateTimers[`${index}-${field}`] = setTimeout(() => {
+                calculateStockItem(index);
+                saveToLocalStorage();
+
+                // 結果部分だけを更新
+                updateResultsDisplay(index);
+
+                // タイマーをクリア
+                delete updateTimers[`${index}-${field}`];
+            }, 500); // 500ms後に実行
+        }
+
+        // 結果表示部分だけを更新する関数
+        function updateResultsDisplay(index) {
+            // 念のため配列かどうか確認
+            if (!Array.isArray(stockItems) || !stockItems[index]) {
+                console.error('updateResultsDisplay: インデックスが無効です');
+                return;
+            }
+
+            const item = stockItems[index];
+            const cardElement = document.querySelectorAll('.stock-card')[index];
+
+            if (!cardElement) return;
+
+            const resultsDiv = cardElement.querySelector('.results');
+            if (resultsDiv) {
+                resultsDiv.innerHTML = `
+                    <div class="result-row">
+                        <div class="result-label">現在の在庫数:</div>
+                        <div class="result-value">${item.currentStock !== undefined ? item.currentStock : '-'}</div>
+                    </div>
+                    <div class="result-row">
+                        <div class="result-label">在庫切れ予測:</div>
+                        <div class="result-value ${getColorClass(item.daysUntilZero)}">${item.zeroStockDate || '-'}</div>
+                    </div>
+                    ${item.daysUntilZero ? `<div class="result-note">${item.daysUntilZeroText || ''}</div>` : ''}
+                `;
+            }
         }
 
         // 在庫切れ予測に基づいて色分けするクラスを取得
@@ -470,22 +518,21 @@
             }
 
             const startDateInput = document.getElementById(`startDate-${index}`);
-            const initialStockInput = document.getElementById(`initialStock-${index}`);
 
             const startDateStr = startDateInput.value;
-            const initialStock = parseInt(initialStockInput.value) || 0;
 
             if (!startDateStr) return;
 
             stockItems[index].startDate = startDateStr;
-            stockItems[index].initialStock = initialStock;
 
             // 在庫計算を実行
             calculateStockItem(index);
 
-            // 保存して再描画
+            // 保存
             saveToLocalStorage();
-            renderStockCards();
+
+            // 結果部分だけを更新
+            updateResultsDisplay(index);
         }
 
         // 在庫名を更新
@@ -613,9 +660,6 @@
             item.daysUntilZero = daysUntilZero;
             item.daysUntilZeroText = `（${formatDaysInJapanese(daysUntilZero)}）`;
         }
-
-        // 初回読み込み時にローカルストレージをクリア（開発用）
-        // localStorage.removeItem(STORAGE_KEY);
 
         // ページ読み込み時にローカルストレージから復元
         document.addEventListener('DOMContentLoaded', loadFromLocalStorage);
