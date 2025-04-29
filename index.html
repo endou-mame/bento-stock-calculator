@@ -262,7 +262,7 @@
         // ローカルストレージキー
         const STORAGE_KEY = 'stockCalculatorData';
 
-        // 在庫データの配列
+        // 在庫データの配列を必ず配列として初期化
         let stockItems = [];
 
         // 日本時間の現在の日付を取得する関数
@@ -310,23 +310,53 @@
 
         // ローカルストレージからデータを読み込む
         function loadFromLocalStorage() {
-            const savedData = localStorage.getItem(STORAGE_KEY);
-            if (savedData) {
-                stockItems = JSON.parse(savedData);
-                renderStockCards();
+            try {
+                const savedData = localStorage.getItem(STORAGE_KEY);
+                if (savedData) {
+                    const parsedData = JSON.parse(savedData);
+                    // 必ず配列であることを確認
+                    stockItems = Array.isArray(parsedData) ? parsedData : [];
+                } else {
+                    // データがない場合は空の配列で初期化
+                    stockItems = [];
+                }
+            } catch (error) {
+                console.error('ローカルストレージからの読み込みエラー:', error);
+                // エラーが発生した場合も空の配列で初期化
+                stockItems = [];
+                // エラー時は既存データをクリア
+                localStorage.removeItem(STORAGE_KEY);
             }
+
+            renderStockCards();
             updateEmptyState();
         }
 
         // ローカルストレージにデータを保存
         function saveToLocalStorage() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(stockItems));
+            try {
+                // 配列であることを確認
+                if (!Array.isArray(stockItems)) {
+                    console.error('保存エラー: stockItemsが配列ではありません');
+                    stockItems = []; // 強制的に配列化
+                }
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(stockItems));
+            } catch (error) {
+                console.error('ローカルストレージへの保存エラー:', error);
+            }
         }
 
         // 在庫カードを描画する関数
         function renderStockCards() {
             const stockCardsContainer = document.getElementById('stockCards');
             stockCardsContainer.innerHTML = '';
+
+            // 念のため配列かどうか確認
+            if (!Array.isArray(stockItems)) {
+                console.error('描画エラー: stockItemsが配列ではありません');
+                stockItems = []; // 強制的に配列化
+                return;
+            }
 
             stockItems.forEach((item, index) => {
                 const card = document.createElement('div');
@@ -385,7 +415,7 @@
             const emptyState = document.getElementById('emptyState');
             const addNewBtn = document.getElementById('addNewBtn');
 
-            if (stockItems.length === 0) {
+            if (!Array.isArray(stockItems) || stockItems.length === 0) {
                 emptyState.style.display = 'block';
                 addNewBtn.style.display = 'none';
             } else {
@@ -396,6 +426,12 @@
 
         // 新しい在庫を追加
         function addNewStock() {
+            // 念のため配列かどうか確認
+            if (!Array.isArray(stockItems)) {
+                console.error('addNewStock: stockItemsが配列ではありません');
+                stockItems = []; // 強制的に配列化
+            }
+
             if (stockItems.length >= 3) {
                 alert('最大3つまでの在庫しか管理できません');
                 return;
@@ -427,6 +463,12 @@
 
         // 在庫データを更新
         function updateStockData(index) {
+            // 念のため配列かどうか確認
+            if (!Array.isArray(stockItems) || !stockItems[index]) {
+                console.error('updateStockData: インデックスが無効です');
+                return;
+            }
+
             const startDateInput = document.getElementById(`startDate-${index}`);
             const initialStockInput = document.getElementById(`initialStock-${index}`);
 
@@ -448,12 +490,24 @@
 
         // 在庫名を更新
         function updateStockName(index, name) {
+            // 念のため配列かどうか確認
+            if (!Array.isArray(stockItems) || !stockItems[index]) {
+                console.error('updateStockName: インデックスが無効です');
+                return;
+            }
+
             stockItems[index].name = name;
             saveToLocalStorage();
         }
 
         // 在庫を削除
         function deleteStock(index) {
+            // 念のため配列かどうか確認
+            if (!Array.isArray(stockItems) || !stockItems[index]) {
+                console.error('deleteStock: インデックスが無効です');
+                return;
+            }
+
             if (confirm('この在庫データを削除しますか？')) {
                 stockItems.splice(index, 1);
                 saveToLocalStorage();
@@ -463,6 +517,12 @@
 
         // 在庫計算関数（特定のインデックスの在庫アイテム用）
         function calculateStockItem(index) {
+            // 念のため配列かどうか確認
+            if (!Array.isArray(stockItems) || !stockItems[index]) {
+                console.error('calculateStockItem: インデックスが無効です');
+                return;
+            }
+
             const item = stockItems[index];
 
             // 日付の変換
@@ -512,6 +572,12 @@
 
         // 在庫切れ予測日を計算する関数
         function calculateZeroStockDate(index) {
+            // 念のため配列かどうか確認
+            if (!Array.isArray(stockItems) || !stockItems[index]) {
+                console.error('calculateZeroStockDate: インデックスが無効です');
+                return;
+            }
+
             const item = stockItems[index];
             const currentStock = item.currentStock;
 
@@ -547,6 +613,9 @@
             item.daysUntilZero = daysUntilZero;
             item.daysUntilZeroText = `（${formatDaysInJapanese(daysUntilZero)}）`;
         }
+
+        // 初回読み込み時にローカルストレージをクリア（開発用）
+        // localStorage.removeItem(STORAGE_KEY);
 
         // ページ読み込み時にローカルストレージから復元
         document.addEventListener('DOMContentLoaded', loadFromLocalStorage);
