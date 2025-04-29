@@ -72,6 +72,20 @@
             font-size: 24px;
             color: #4CAF50;
         }
+        .result-subtitle {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+        .danger {
+            color: #e74c3c;
+        }
+        .warning {
+            color: #f39c12;
+        }
+        .safe {
+            color: #4CAF50;
+        }
         .footer {
             margin-top: 20px;
             text-align: center;
@@ -103,6 +117,12 @@
         <div class="result-item">
             <div class="result-title">現在の在庫数:</div>
             <div class="result-value" id="resultCurrentStock">-</div>
+        </div>
+
+        <div class="result-item">
+            <div class="result-title">在庫切れ予測:</div>
+            <div class="result-value" id="resultZeroStockDate">-</div>
+            <div class="result-subtitle" id="resultDaysUntilZero"></div>
         </div>
 
         <button onclick="calculateStock()">再計算</button>
@@ -151,6 +171,14 @@
         function getDayOfWeekJP(date) {
             const days = ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'];
             return days[getDayOfWeek(date)];
+        }
+
+        // 数字を日本語の単位で表示する関数
+        function formatDaysInJapanese(days) {
+            if (days === 0) return "今日";
+            if (days === 1) return "明日";
+            if (days === 2) return "明後日";
+            return `${days}日後`;
         }
 
         // ローカルストレージからデータを読み込む
@@ -235,19 +263,70 @@
                 currentStock -= decrease;
 
                 // デバッグ情報を追加
-                debugInfo.push(`${formatDateForDisplay(day)} (${getDayOfWeekJP(day)}): -${decrease}, 残り${currentStock}`);
-            }
+                debugInfo.push(`${formatDateForDisplay(day)} (${getDayOfWeekJP(day)}): -${decrease}, 残り${Math.max(0, currentStock)}`);
 
-            // 在庫が0未満にならないように調整
-            currentStock = Math.max(0, currentStock);
+                // 在庫が0以下になったらループを抜ける
+                if (currentStock <= 0) {
+                    currentStock = 0;
+                    break;
+                }
+            }
 
             // 結果の表示
             document.getElementById('resultCurrentStock').textContent = currentStock;
+
+            // 在庫切れ予測日の計算
+            calculateZeroStockDate(startDate, initialStock, currentStock);
 
             // デバッグ情報を表示（開発時に役立つ）
             const debugInfoElement = document.getElementById('debugInfo');
             debugInfoElement.innerHTML = debugInfo.join('<br>');
             // debugInfoElement.style.display = 'block'; // 必要な場合はコメントを外す
+        }
+
+        // 在庫切れ予測日を計算する関数
+        function calculateZeroStockDate(startDate, initialStock, currentStock) {
+            // 既に在庫切れの場合
+            if (currentStock <= 0) {
+                document.getElementById('resultZeroStockDate').textContent = "在庫切れ";
+                document.getElementById('resultZeroStockDate').className = "result-value danger";
+                document.getElementById('resultDaysUntilZero').textContent = "";
+                return;
+            }
+
+            const todayDate = getJapanDate();
+            todayDate.setHours(0, 0, 0, 0);
+
+            // 現在の日付から開始
+            let predictDate = new Date(todayDate);
+            let remainingStock = currentStock;
+            let daysUntilZero = 0;
+
+            // 予測日付を計算
+            while (remainingStock > 0) {
+                daysUntilZero++;
+                predictDate.setDate(predictDate.getDate() + 1);
+                const dayOfWeek = getDayOfWeek(predictDate);
+
+                // 水曜日(3)と土曜日(6)は-1、それ以外は-2
+                let decrease = (dayOfWeek === 3 || dayOfWeek === 6) ? 1 : 2;
+                remainingStock -= decrease;
+            }
+
+            // 結果の表示
+            document.getElementById('resultZeroStockDate').textContent = formatDateForDisplay(predictDate);
+
+            // 日数に応じた色分け
+            if (daysUntilZero <= 3) {
+                document.getElementById('resultZeroStockDate').className = "result-value danger";
+            } else if (daysUntilZero <= 7) {
+                document.getElementById('resultZeroStockDate').className = "result-value warning";
+            } else {
+                document.getElementById('resultZeroStockDate').className = "result-value safe";
+            }
+
+            // 残り日数の表示
+            document.getElementById('resultDaysUntilZero').textContent = `（${formatDaysInJapanese(daysUntilZero)}）`;
         }
 
         // ページ読み込み時にローカルストレージから復元
